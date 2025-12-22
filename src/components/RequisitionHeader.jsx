@@ -7,9 +7,14 @@ const RequisitionHeader = () => {
 
   const { username, password, reqNum } = location.state || {};
 
+  /*
   const baseURL = "https://epicorsi/kinetic/api/v2/odata";
   const company = "EPIC03";
   const apiKey = "s2IQ6kMDvdlP42poSZTG9VJ1Z6EbMhEd4PbmFUi4nVZVK";
+  */
+  const baseURL = "https://192.168.1.142/kinetic2025demo/api/v2/odata";
+  const company = "EPIC06";
+  const apiKey = "wqgWS6cVVd4WnydMRoTNUkLbiBRFY93LJmhp2UzeLmvsC";
 
   const today = new Date().toISOString().split("T")[0];
 

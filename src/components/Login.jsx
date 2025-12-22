@@ -6,6 +6,14 @@ import logo from "../assets/company-logo.jpg";
 import Icon from "@mdi/react";
 import { mdiEye, mdiEyeOff } from "@mdi/js";
 
+// Configurable variables
+//const API_URL = "https://epicorsi/kinetic/api/v2/odata/EPIC03/Ice.BO.UserFileSvc/UserFiles";
+const API_URL = "https://192.168.1.142/kinetic2025demo/api/v2/odata/EPIC06/Ice.BO.UserFileSvc/UserFiles";
+
+//const API_KEY = "s2IQ6kMDvdlP42poSZTG9VJ1Z6EbMhEd4PbmFUi4nVZVK";
+const API_KEY = "wqgWS6cVVd4WnydMRoTNUkLbiBRFY93LJmhp2UzeLmvsC";
+
+
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");
@@ -19,27 +27,23 @@ const Login = () => {
     try {
       setLoading(true);
 
+      // Base64 encode username:password
       const auth = btoa(`${username}:${password}`);
 
-      const response = await fetch(
-        `https://epicorsi/kinetic/api/v2/odata/EPIC03/Ice.BO.UserFileSvc/UserFiles('${username}')`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Basic ${auth}`,
-            Accept: "application/json",
-            "X-API-Key": "s2IQ6kMDvdlP42poSZTG9VJ1Z6EbMhEd4PbmFUi4nVZVK",
-          },
-        }
-      );
+      const response = await fetch(`${API_URL}('${username}')`, {
+        method: "GET",
+        headers: {
+          Authorization: `Basic ${auth}`,
+          Accept: "application/json",
+          "X-API-Key": API_KEY,
+        },
+      });
 
       if (!response.ok) {
         throw new Error("Invalid username or password");
       }
 
-      // ✔ Authentication successful
       console.log("Login successful");
-
       navigate("/requisitions", { state: { username, password } });
 
     } catch (err) {
