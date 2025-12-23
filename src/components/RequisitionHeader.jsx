@@ -589,7 +589,7 @@ const saveButton = {
 
 const backButton = {
   padding: "8px 16px",
-  backgroundColor: "#2c5282", // Changed from #a0aec0 to a darker gray
+  backgroundColor: "#2c5282", 
   color: "white",
   border: "none",
   borderRadius: "4px",
