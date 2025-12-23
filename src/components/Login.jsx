@@ -44,7 +44,11 @@ const Login = () => {
       }
 
       console.log("Login successful");
-      navigate("/requisitions", { state: { username, password } });
+      sessionStorage.setItem("username", username);
+      sessionStorage.setItem("password", password);
+
+      navigate("/requisitions");
+
 
     } catch (err) {
       alert(err.message);

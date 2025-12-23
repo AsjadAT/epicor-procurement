@@ -1,17 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 const RequisitionHeader = () => {
-  const location = useLocation();
   const navigate = useNavigate();
-
-  const { username, password, reqNum } = location.state || {};
-
-  /*
-  const baseURL = "https://epicorsi/kinetic/api/v2/odata";
-  const company = "EPIC03";
-  const apiKey = "s2IQ6kMDvdlP42poSZTG9VJ1Z6EbMhEd4PbmFUi4nVZVK";
-  */
+  const { reqNum } = useParams();
+  const username = sessionStorage.getItem("username");
+  const password = sessionStorage.getItem("password");
+  
   const baseURL = "https://192.168.1.142/kinetic2025demo/api/v2/odata";
   const company = "EPIC06";
   const apiKey = "wqgWS6cVVd4WnydMRoTNUkLbiBRFY93LJmhp2UzeLmvsC";
@@ -39,8 +35,8 @@ const RequisitionHeader = () => {
   const [details, setDetails] = useState([]);
 
   useEffect(() => {
-    if (!username || !password || !reqNum) {
-      navigate("/");
+    if (!username || !password) {
+      navigate("/", { replace: true });
       return;
     }
     fetchHeader();
@@ -129,24 +125,14 @@ const RequisitionHeader = () => {
     });
   };
 
-  const Field = ({ label, value, onChange }) => (
-  <div style={fieldWrapper}>
-    <label style={labelStyle}>{label}</label>
-    <input style={inputStyle} value={value} onChange={onChange} />
-  </div>
-);
-
-
-
   const saveHeader = async () => {
     try {
-        setLoading(true);
+      setLoading(true);
+      const auth = btoa(`${username}:${password}`);
 
-        const auth = btoa(`${username}:${password}`);
+      const url = `${baseURL}/${company}/Erp.BO.ReqSvc/Reqs('${company}',${reqNum})?api-key=${apiKey}`;
 
-        const url = `${baseURL}/${company}/Erp.BO.ReqSvc/Reqs('${company}',${reqNum})?api-key=${apiKey}`;
-
-        const payload = {
+      const payload = {
         ShipName: header.shipToName,
         ShipAddress1: header.shipToAddress1,
         ShipAddress2: header.shipToAddress2,
@@ -157,157 +143,242 @@ const RequisitionHeader = () => {
         ShipCountry: header.shipToCountry,
         CommentText: header.comments,
         NotifyUponReceipt: header.notifyReceipt
-        };
+      };
 
-        const response = await fetch(url, {
+      const response = await fetch(url, {
         method: "PATCH",
         headers: {
-            Authorization: `Basic ${auth}`,
-            "Content-Type": "application/json",
-            Accept: "application/json"
+          Authorization: `Basic ${auth}`,
+          "Content-Type": "application/json",
+          Accept: "application/json"
         },
         body: JSON.stringify(payload)
-        });
+      });
 
-        if (!response.ok) {
+      if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText);
-        }
+      }
 
-        alert("Requisition header updated successfully");
+      alert("Requisition header updated successfully");
     } catch (err) {
-        console.error("Header update failed:", err);
-        alert("Failed to update requisition header");
+      console.error("Header update failed:", err);
+      alert("Failed to update requisition header");
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-    };
+  };
 
   return (
-    <div style={{ padding: "16px", maxWidth: "900px", margin: "0 auto" }}>
-      <h2 style={{ marginBottom: "12px" }}>Requisition #{reqNum}</h2>
+    <div style={container}>
+      <h2 style={{ marginBottom: "16px", color: "#2d3748" }}>Requisition #{reqNum}</h2>
 
       {loading && <div>Loading...</div>}
 
       {!loading && (
         <>
           {/* ---------- HEADER PANEL ---------- */}
-            <div style={headerPanel}>
-            {/* Requisition */}
+          <div style={headerPanel}>
+            {/* Requisition Column */}
             <div style={headerColumn}>
-                <h4 style={sectionTitle}>Requisition</h4>
-
-                <Field label="Requisition Number" value={reqNum} onChange={() => {}} />
-                <Field label="Global Req" value="0" onChange={() => {}} />
-
-                <Field
-                label="Request Date"
-                value={header.requestDate}
-                onChange={(e) => handleChange("requestDate", e.target.value)}
+              <h4 style={sectionTitle}>Requisition</h4>
+              
+              <div style={fieldWrapper}>
+                <label style={labelStyle}>Requisition Number</label>
+                <input 
+                  style={inputStyle} 
+                  value={reqNum} 
+                  readOnly 
                 />
-
-                <Field
-                label="Requestor"
-                value={header.requestor}
-                onChange={() => {}}
+              </div>
+              
+              <div style={fieldWrapper}>
+                <label style={labelStyle}>Global Req</label>
+                <input 
+                  style={inputStyle} 
+                  value="0" 
+                  readOnly 
                 />
-
-                <div style={{ marginTop: "8px" }}>
+              </div>
+              
+              <div style={fieldWrapper}>
+                <label style={labelStyle}>Request Date</label>
+                <input
+                  type="date"
+                  style={inputStyle}
+                  value={header.requestDate}
+                  onChange={(e) => handleChange("requestDate", e.target.value)}
+                />
+              </div>
+              
+              <div style={fieldWrapper}>
+                <label style={labelStyle}>Requestor</label>
+                <input
+                  style={inputStyle}
+                  value={header.requestor}
+                  onChange={() => {}}
+                  readOnly
+                />
+              </div>
+              
+              <div style={{ marginTop: "4px" }}>
                 <label style={checkboxLabel}>
-                    <input
+                  <input
                     type="checkbox"
                     checked={header.notifyReceipt}
-                    onChange={(e) =>
-                        handleChange("notifyReceipt", e.target.checked)
-                    }
-                    />
-                    Notify Upon Receipt
+                    onChange={(e) => handleChange("notifyReceipt", e.target.checked)}
+                    style={{ margin: 0 }}
+                  />
+                  Notify Upon Receipt
                 </label>
-                </div>
+              </div>
             </div>
 
-            {/* Ship To */}
+            {/* Ship To Column */}
             <div style={headerColumn}>
-                <h4 style={sectionTitle}>Ship To</h4>
-
-                <Field
-                label="Name"
-                value={header.shipToName}
-                onChange={(e) => handleChange("shipToName", e.target.value)}
+              <h4 style={sectionTitle}>Ship To</h4>
+              
+              <div style={fieldWrapper}>
+                <label style={labelStyle}>Name</label>
+                <input
+                  style={inputStyle}
+                  value={header.shipToName}
+                  onChange={(e) => handleChange("shipToName", e.target.value)}
                 />
-
-                <Field
-                label="Address 1"
-                value={header.shipToAddress1}
-                onChange={(e) => handleChange("shipToAddress1", e.target.value)}
+              </div>
+              
+              <div style={fieldWrapper}>
+                <label style={labelStyle}>Address 1</label>
+                <input
+                  style={inputStyle}
+                  value={header.shipToAddress1}
+                  onChange={(e) => handleChange("shipToAddress1", e.target.value)}
                 />
-
-                <Field
-                label="Address 2"
-                value={header.shipToAddress2}
-                onChange={(e) => handleChange("shipToAddress2", e.target.value)}
+              </div>
+              
+              <div style={fieldWrapper}>
+                <label style={labelStyle}>Address 2</label>
+                <input
+                  style={inputStyle}
+                  value={header.shipToAddress2}
+                  onChange={(e) => handleChange("shipToAddress2", e.target.value)}
                 />
-
-                <Field
-                label="Address 3"
-                value={header.shipToAddress3}
-                onChange={(e) => handleChange("shipToAddress3", e.target.value)}
+              </div>
+              
+              <div style={fieldWrapper}>
+                <label style={labelStyle}>Address 3</label>
+                <input
+                  style={inputStyle}
+                  value={header.shipToAddress3}
+                  onChange={(e) => handleChange("shipToAddress3", e.target.value)}
                 />
-
-                <div style={row}>
-                <Field
-                    label="City"
+              </div>
+              
+              <div style={row}>
+                <div style={fieldWrapper}>
+                  <label style={labelStyle}>City</label>
+                  <input
+                    style={inputStyle}
                     value={header.shipToCity}
                     onChange={(e) => handleChange("shipToCity", e.target.value)}
-                />
-                <Field
-                    label="State"
+                  />
+                </div>
+                <div style={fieldWrapper}>
+                  <label style={labelStyle}>State</label>
+                  <input
+                    style={inputStyle}
                     value={header.shipToState}
                     onChange={(e) => handleChange("shipToState", e.target.value)}
-                />
+                  />
                 </div>
-
-                <div style={row}>
-                <Field
-                    label="Postal Code"
+              </div>
+              
+              <div style={row}>
+                <div style={fieldWrapper}>
+                  <label style={labelStyle}>Postal Code</label>
+                  <input
+                    style={inputStyle}
                     value={header.shipToZIP}
                     onChange={(e) => handleChange("shipToZIP", e.target.value)}
-                />
-                <Field
-                    label="Country"
+                  />
+                </div>
+                <div style={fieldWrapper}>
+                  <label style={labelStyle}>Country</label>
+                  <input
+                    style={inputStyle}
                     value={header.shipToCountry}
                     onChange={(e) => handleChange("shipToCountry", e.target.value)}
-                />
+                  />
                 </div>
+              </div>
             </div>
 
-            {/* Status / Action */}
+            {/* Status / Action Column */}
             <div style={headerColumn}>
-                <h4 style={sectionTitle}>Current Action / Status / Dispatcher</h4>
-
-                <Field label="Action" value="Approve Price" onChange={() => {}} />
-                <Field label="Status" value="Pending" onChange={() => {}} />
-                <Field label="Name" value={header.requestor} onChange={() => {}} />
-                <Field label="Created By" value="" onChange={() => {}} />
-                <Field label="Created On" value="" onChange={() => {}} />
+              <h4 style={sectionTitle}>Current Action / Status / Dispatcher</h4>
+              
+              <div style={fieldWrapper}>
+                <label style={labelStyle}>Action</label>
+                <input 
+                  style={inputStyle} 
+                  value="Create Purchase Order" 
+                  readOnly 
+                />
+              </div>
+              
+              <div style={fieldWrapper}>
+                <label style={labelStyle}>Status</label>
+                <input 
+                  style={inputStyle} 
+                  value="Ordered" 
+                  readOnly 
+                />
+              </div>
+              
+              <div style={fieldWrapper}>
+                <label style={labelStyle}>Name</label>
+                <input 
+                  style={inputStyle} 
+                  value={header.requestor} 
+                  readOnly 
+                />
+              </div>
+              
+              <div style={fieldWrapper}>
+                <label style={labelStyle}>Created By</label>
+                <input 
+                  style={inputStyle} 
+                  value="" 
+                  readOnly 
+                />
+              </div>
+              
+              <div style={fieldWrapper}>
+                <label style={labelStyle}>Created On</label>
+                <input 
+                  style={inputStyle} 
+                  value="" 
+                  readOnly 
+                />
+              </div>
             </div>
-            </div>
+          </div>
 
-            {/* ---------- COMMENTS ---------- */}
-            <div style={{ marginTop: "12px" }}>
+          {/* ---------- COMMENTS ---------- */}
+          <div style={{ marginTop: "16px" }}>
             <label style={labelStyle}>Comments</label>
             <textarea
-                rows={4}
-                style={textareaStyle}
-                value={header.comments}
-                onChange={(e) => handleChange("comments", e.target.value)}
+              rows={4}
+              style={textareaStyle}
+              value={header.comments}
+              onChange={(e) => handleChange("comments", e.target.value)}
+              placeholder="Enter comments here..."
             />
-            </div>
+          </div>
 
+          <hr style={{ margin: "24px 0", border: "none", borderTop: "1px solid #e2e8f0" }} />
 
-          <hr style={{ margin: "28px 0" }} />
-
-          <h3>Requisition Lines</h3>
+          <h3 style={{ marginBottom: "12px", color: "#2d3748" }}>Requisition Lines</h3>
 
           {detailsLoading && <div>Loading requisition lines...</div>}
 
@@ -393,10 +464,12 @@ const RequisitionHeader = () => {
           )}
 
           <div style={buttonRow}>
-            <button onClick={saveHeader}>
-            Save
+            <button style={saveButton} onClick={saveHeader}>
+              Save
             </button>
-            <button onClick={() => navigate(-1)}>Back</button>
+            <button style={backButton} onClick={() => navigate(-1)}>
+              Back
+            </button>
           </div>
         </>
       )}
@@ -404,12 +477,36 @@ const RequisitionHeader = () => {
   );
 };
 
-/* ---------- Styles ---------- */
+/* ---------- Updated Styles ---------- */
 
-const stackContainer = {
+const container = {
+  padding: "16px",
+  backgroundColor: "#f5f7fa",
+  boxSizing: "border-box",
+  width: "100%",
+  minWidth: "800px",
+};
+
+const headerPanel = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, 1fr)",
+  gap: "24px",
+  backgroundColor: "#dfeaed",
+  padding: "16px",
+  borderRadius: "6px",
+  marginBottom: "16px",
+};
+
+const headerColumn = {
   display: "flex",
   flexDirection: "column",
-  gap: "10px",
+};
+
+const sectionTitle = {
+  fontSize: "14px",
+  fontWeight: 700,
+  marginBottom: "8px",
+  color: "#2c3e50",
 };
 
 const labelStyle = {
@@ -417,29 +514,89 @@ const labelStyle = {
   fontWeight: 600,
   marginBottom: "4px",
   display: "block",
+  color: "#2c3e50",
 };
 
 const inputStyle = {
   width: "100%",
-  padding: "8px",
-  fontSize: "14px",
-  borderRadius: "6px",
-  border: "1px solid #d0d5dd",
+  padding: "6px 8px",
+  fontSize: "13px",
+  borderRadius: "4px",
+  border: "1px solid #cbd5e0",
+  backgroundColor: "white",
+  boxSizing: "border-box",
+  height: "32px",
+  fontFamily: "inherit",
 };
 
 const textareaStyle = {
   width: "100%",
   padding: "8px",
-  fontSize: "14px",
-  borderRadius: "6px",
-  border: "1px solid #d0d5dd",
+  fontSize: "13px",
+  borderRadius: "4px",
+  border: "1px solid #cbd5e0",
   resize: "vertical",
+  backgroundColor: "white",
+  minHeight: "80px",
+  fontFamily: "inherit",
+  boxSizing: "border-box",
+};
+
+const fieldWrapper = {
+  display: "flex",
+  flexDirection: "column",
+  marginBottom: "12px",
+  width: "100%",
+};
+
+const row = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "12px",
+  width: "100%",
+};
+
+const checkboxLabel = {
+  fontSize: "13px",
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  cursor: "pointer",
+  userSelect: "none",
+  marginTop: "8px",
+  width: "100%",
 };
 
 const buttonRow = {
   display: "flex",
   gap: "12px",
-  marginTop: "16px",
+  marginTop: "24px",
+  paddingTop: "16px",
+  borderTop: "1px solid #e2e8f0",
+};
+
+const saveButton = {
+  padding: "8px 16px",
+  backgroundColor: "#2c5282",
+  color: "white",
+  border: "none",
+  borderRadius: "4px",
+  cursor: "pointer",
+  fontWeight: "600",
+  fontSize: "14px",
+  fontFamily: "inherit",
+};
+
+const backButton = {
+  padding: "8px 16px",
+  backgroundColor: "#2c5282", // Changed from #a0aec0 to a darker gray
+  color: "white",
+  border: "none",
+  borderRadius: "4px",
+  cursor: "pointer",
+  fontWeight: "600",
+  fontSize: "14px",
+  fontFamily: "inherit",
 };
 
 const gridWrapper = {
@@ -447,12 +604,14 @@ const gridWrapper = {
   border: "1px solid #cfd6dd",
   borderRadius: "6px",
   marginTop: "12px",
+  overflowX: "auto",
 };
 
 const table = {
   width: "100%",
   borderCollapse: "collapse",
   fontSize: "13px",
+  minWidth: "800px",
 };
 
 const th = {
@@ -461,11 +620,13 @@ const th = {
   padding: "6px 8px",
   textAlign: "left",
   fontWeight: "600",
+  fontFamily: "inherit",
 };
 
 const td = {
   borderBottom: "1px solid #e1e5ea",
   padding: "4px 6px",
+  fontFamily: "inherit",
 };
 
 const gridInput = {
@@ -474,46 +635,9 @@ const gridInput = {
   fontSize: "13px",
   borderRadius: "4px",
   border: "1px solid #d0d5dd",
+  boxSizing: "border-box",
+  fontFamily: "inherit",
+  height: "28px",
 };
-const headerPanel = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr 1fr",
-  gap: "16px",
-  backgroundColor: "#dfeaed",
-  padding: "16px",
-  borderRadius: "6px",
-};
-
-const headerColumn = {
-  display: "flex",
-  flexDirection: "column",
-};
-
-
-const sectionTitle = {
-  fontSize: "14px",
-  fontWeight: 700,
-  marginBottom: "6px",
-};
-
-const row = {
-  display: "grid",
-  gridTemplateColumns: "2fr 1fr",
-  gap: "8px",
-};
-
-const checkboxLabel = {
-  fontSize: "13px",
-  display: "flex",
-  alignItems: "center",
-  gap: "6px",
-};
-
-const fieldWrapper = {
-  display: "flex",
-  flexDirection: "column",
-  marginBottom: "12px", // ✅ matches screenshot spacing
-};
-
 
 export default RequisitionHeader;

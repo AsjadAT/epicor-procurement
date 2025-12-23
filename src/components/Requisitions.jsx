@@ -5,27 +5,31 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const Requisitions = () => {
-  const location = useLocation();
+  //const location = useLocation();
   const navigate = useNavigate();
 
-  const { username, password } = location.state || {};
+  //const { username, password } = location.state || {};
+  const username = sessionStorage.getItem("username");
+  const password = sessionStorage.getItem("password");
+
 
   const [reqs, setReqs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [selectedReq, setSelectedReq] = useState(null);
 
-  const baseURL = "https://epicorsi/kinetic/api/v2/odata";
-  const company = "EPIC03";
-  const apiKey = "s2IQ6kMDvdlP42poSZTG9VJ1Z6EbMhEd4PbmFUi4nVZVK";
+  const baseURL = "https://192.168.1.142/kinetic2025demo/api/v2/odata";
+  const company = "EPIC06";
+  const apiKey = "wqgWS6cVVd4WnydMRoTNUkLbiBRFY93LJmhp2UzeLmvsC";
 
   useEffect(() => {
-    if (!username || !password) {
-      navigate("/");
-      return;
-    }
-    fetchRequisitions();
-  }, []);
+  if (!username || !password) {
+    navigate("/", { replace: true });
+    return;
+  }
+  fetchRequisitions();
+}, []);
+
 
   const fetchRequisitions = async () => {
     try {
@@ -111,14 +115,8 @@ const Requisitions = () => {
                       cursor: "pointer",
                     }}
                     onClick={(e) => {
-                      e.stopPropagation(); // prevent row select conflict
-                      navigate(`/requisition/${r.ReqNum}`, {
-                        state: {
-                          username,
-                          password,
-                          reqNum: r.ReqNum,
-                        },
-                      });
+                      e.stopPropagation(); 
+                      navigate(`/requisition/${r.ReqNum}`);
                     }}
                   >
                     {r.ReqNum}
