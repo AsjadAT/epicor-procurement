@@ -8,8 +8,9 @@ import { mdiEye, mdiEyeOff } from "@mdi/js";
 
 // Configurable variables
 //const API_URL = "https://epicorsi/kinetic/api/v2/odata/EPIC03/Ice.BO.UserFileSvc/UserFiles";
-const API_URL = "https://192.168.1.142/kinetic2025demo/api/v2/odata/EPIC06/Ice.BO.UserFileSvc/UserFiles";
-
+//const API_URL = "https://192.168.1.142/kinetic2025demo/api/v2/odata/EPIC06/Ice.BO.UserFileSvc/UserFiles"; 
+const API_URL = "https://epicorsi/kinetic2025demo/api/v2/odata/EPIC06/Ice.BO.UserFileSvc/UserFiles"; 
+//const API_URL = "https://223.181.56.175/kinetic2025demo/api/v2/odata/EPIC06/Ice.BO.UserFileSvc/UserFiles";
 //const API_KEY = "s2IQ6kMDvdlP42poSZTG9VJ1Z6EbMhEd4PbmFUi4nVZVK";
 const API_KEY = "wqgWS6cVVd4WnydMRoTNUkLbiBRFY93LJmhp2UzeLmvsC";
 

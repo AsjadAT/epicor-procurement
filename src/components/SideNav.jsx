@@ -20,7 +20,7 @@ const SideNav = ({ activePanel, setActivePanel }) => {
     <div
       style={{
         ...styles.wrapper,
-        width: activePanel ? 64 + 180 : 64,   // ✅ KEY FIX
+        width: activePanel ? 64 + 180 : 64,   
       }}
 >
 
@@ -71,7 +71,7 @@ const SideNav = ({ activePanel, setActivePanel }) => {
   style={{
     ...styles.lightPanel,
     width: activePanel ? 180 : 0,
-    borderRight: activePanel ? "1px solid #d0d5dd" : "none", // ✅ FIX
+    borderRight: activePanel ? "1px solid #d0d5dd" : "none", 
   }}
 >
 
