@@ -18,8 +18,9 @@ const Requisitions = () => {
   const [error, setError] = useState("");
   const [selectedReq, setSelectedReq] = useState(null);
 
-  const baseURL = "https://192.168.1.142/kinetic2025demo/api/v2/odata";
+  //const baseURL = "https://192.168.1.142/kinetic2025demo/api/v2/odata";
   //const baseURL = "https://223.181.56.175/kinetic2025demo/api/v2/odata"
+  const baseURL = "https://epicorsi/kinetic2025demo/api/v2/odata";
   const company = "EPIC06";
   const apiKey = "wqgWS6cVVd4WnydMRoTNUkLbiBRFY93LJmhp2UzeLmvsC";
 
