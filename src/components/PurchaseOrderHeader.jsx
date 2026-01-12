@@ -15,6 +15,7 @@ const PurchaseOrderHeader = () => {
   const [loading, setLoading] = useState(true);
   const [linesLoading, setLinesLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   const [header, setHeader] = useState({
     orderDate: "",
@@ -40,12 +41,23 @@ const PurchaseOrderHeader = () => {
   const [lines, setLines] = useState([]);
 
   useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
     if (!username || !password) {
       navigate("/", { replace: true });
       return;
     }
-    fetchHeader();
-    fetchLines();
+    if (poNum) {
+      fetchHeader();
+      fetchLines();
+    }
   }, [poNum]);
 
   const fetchHeader = async () => {
@@ -148,30 +160,34 @@ const PurchaseOrderHeader = () => {
 
   return (
     <div style={container}>
-      <h2 style={{ marginBottom: "16px", color: "#2d3748" }}>Purchase Order #{poNum}</h2>
-
-      {error && (
-        <div style={errorStyle}>
-          <strong>Error:</strong> {error}
-          <button 
-            onClick={() => {
-              setError("");
-              fetchHeader();
-              fetchLines();
-            }}
-            style={retryButton}
-          >
-            Retry
-          </button>
-        </div>
-      )}
+      <div style={isMobile ? mobileHeaderRow : headerRow}>
+        <h2 style={isMobile ? mobileTitle : title}>
+          Purchase Order #{poNum}
+        </h2>
+        
+        {error && (
+          <div style={errorStyle}>
+            <strong>Error:</strong> {error}
+            <button 
+              onClick={() => {
+                setError("");
+                fetchHeader();
+                fetchLines();
+              }}
+              style={retryButton}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+      </div>
 
       {loading && <div style={loadingStyle}>Loading header...</div>}
 
       {!loading && (
         <>
           {/* ---------- HEADER PANEL ---------- */}
-          <div style={headerPanel}>
+          <div style={isMobile ? mobileHeaderPanel : headerPanel}>
             {/* Purchase Order Column */}
             <div style={headerColumn}>
               <h4 style={sectionTitle}>Purchase Order</h4>
@@ -285,7 +301,7 @@ const PurchaseOrderHeader = () => {
                 />
               </div>
               
-              <div style={row}>
+              <div style={isMobile ? mobileRow : row}>
                 <div style={fieldWrapper}>
                   <label style={labelStyle}>City</label>
                   <input
@@ -304,7 +320,7 @@ const PurchaseOrderHeader = () => {
                 </div>
               </div>
               
-              <div style={row}>
+              <div style={isMobile ? mobileRow : row}>
                 <div style={fieldWrapper}>
                   <label style={labelStyle}>Postal Code</label>
                   <input
@@ -358,7 +374,7 @@ const PurchaseOrderHeader = () => {
           </div>
 
           {/* ---------- COMMENTS ---------- */}
-          <div style={{ marginTop: "16px" }}>
+          <div style={commentsSection}>
             <label style={labelStyle}>Comments</label>
             <textarea
               rows={4}
@@ -369,61 +385,65 @@ const PurchaseOrderHeader = () => {
             />
           </div>
 
-          <hr style={{ margin: "24px 0", border: "none", borderTop: "1px solid #e2e8f0" }} />
+          <hr style={divider} />
 
-          <h3 style={{ marginBottom: "12px", color: "#2d3748" }}>Purchase Order Lines</h3>
+          <h3 style={sectionTitle}>Purchase Order Lines</h3>
 
           {linesLoading && <div style={loadingStyle}>Loading lines...</div>}
 
           {!linesLoading && lines.length > 0 && (
             <div style={gridWrapper}>
-              <table style={table}>
-                <thead>
-                  <tr>
-                    <th style={th}>Line</th>
-                    <th style={th}>Part Number</th>
-                    <th style={th}>Description</th>
-                    <th style={th}>Order Qty</th>
-                    <th style={th}>UOM</th>
-                    <th style={th}>Unit Cost</th>
-                    <th style={th}>Line Total</th>
-                    <th style={th}>Due Date</th>
-                    <th style={th}>Confirmed</th>
-                    <th style={th}>Open</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {lines.map((line) => {
-                    const lineTotal = (line.OrderQty || 0) * (line.UnitCost || 0);
-                    return (
-                      <tr key={line.POLine}>
-                        <td style={td}>{line.POLine}</td>
-                        <td style={td}>{line.PartNum}</td>
-                        <td style={td}>{line.LineDesc || "-"}</td>
-                        <td style={td} align="right">{line.OrderQty?.toLocaleString()}</td>
-                        <td style={td}>{line.IUM}</td>
-                        <td style={td} align="right">{line.UnitCost?.toFixed(3)}</td>
-                        <td style={td} align="right">${lineTotal.toFixed(2)}</td>
-                        <td style={td}>{line.DueDate?.split("T")[0] || ""}</td>
-                        <td style={td} align="center">
-                          <input
-                            type="checkbox"
-                            checked={line.Confirmed || false}
-                            readOnly
-                          />
-                        </td>
-                        <td style={td} align="center">
-                          <input
-                            type="checkbox"
-                            checked={line.OpenLine || false}
-                            readOnly
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <div style={tableContainer}>
+                <table style={table}>
+                  <thead>
+                    <tr>
+                      <th style={th}>Line</th>
+                      <th style={th}>Part</th>
+                      <th style={th}>Description</th>
+                      <th style={th}>Qty</th>
+                      <th style={th}>UOM</th>
+                      <th style={th}>Unit Cost</th>
+                      <th style={th}>Total</th>
+                      <th style={th}>Due Date</th>
+                      <th style={th}>Confirmed</th>
+                      <th style={th}>Open</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lines.map((line) => {
+                      const lineTotal = (line.OrderQty || 0) * (line.UnitCost || 0);
+                      return (
+                        <tr key={line.POLine}>
+                          <td style={td}>{line.POLine}</td>
+                          <td style={td}>{line.PartNum}</td>
+                          <td style={td}>{line.LineDesc || "-"}</td>
+                          <td style={td} align="right">{line.OrderQty?.toLocaleString()}</td>
+                          <td style={td}>{line.IUM}</td>
+                          <td style={td} align="right">{line.UnitCost?.toFixed(3)}</td>
+                          <td style={td} align="right">${lineTotal.toFixed(2)}</td>
+                          <td style={td}>{line.DueDate?.split("T")[0] || ""}</td>
+                          <td style={td} align="center">
+                            <input
+                              type="checkbox"
+                              checked={line.Confirmed || false}
+                              readOnly
+                              style={checkboxInput}
+                            />
+                          </td>
+                          <td style={td} align="center">
+                            <input
+                              type="checkbox"
+                              checked={line.OpenLine || false}
+                              readOnly
+                              style={checkboxInput}
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
@@ -431,7 +451,7 @@ const PurchaseOrderHeader = () => {
             <div style={noDataStyle}>No lines found for this purchase order.</div>
           )}
 
-          <div style={buttonRow}>
+          <div style={isMobile ? mobileButtonRow : buttonRow}>
             <button style={backButton} onClick={() => navigate(-1)}>
               Back
             </button>
@@ -442,14 +462,49 @@ const PurchaseOrderHeader = () => {
   );
 };
 
-/* ---------- Styles (Matching RequisitionHeader) ---------- */
+/* ---------- Responsive Styles ---------- */
 
 const container = {
   padding: "16px",
   backgroundColor: "#f5f7fa",
   boxSizing: "border-box",
   width: "100%",
-  minWidth: "1200px",
+  minHeight: "100vh",
+  '@media (max-width: 768px)': {
+    padding: "12px",
+  }
+};
+
+const headerRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: "24px",
+  flexWrap: "wrap",
+  gap: "16px",
+};
+
+const mobileHeaderRow = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "stretch",
+  marginBottom: "20px",
+  gap: "12px",
+};
+
+const title = {
+  margin: 0,
+  color: "#2d3748",
+  fontSize: "24px",
+  fontWeight: "600",
+};
+
+const mobileTitle = {
+  margin: 0,
+  color: "#2d3748",
+  fontSize: "20px",
+  fontWeight: "600",
+  textAlign: "center",
 };
 
 const headerPanel = {
@@ -457,9 +512,29 @@ const headerPanel = {
   gridTemplateColumns: "repeat(4, 1fr)",
   gap: "24px",
   backgroundColor: "#dfeaed",
+  padding: "20px",
+  borderRadius: "8px",
+  marginBottom: "20px",
+  boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+  '@media (max-width: 1200px)': {
+    gridTemplateColumns: "repeat(2, 1fr)",
+  },
+  '@media (max-width: 768px)': {
+    gridTemplateColumns: "1fr",
+    padding: "16px",
+    gap: "20px",
+  }
+};
+
+const mobileHeaderPanel = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "20px",
+  backgroundColor: "#dfeaed",
   padding: "16px",
-  borderRadius: "6px",
+  borderRadius: "8px",
   marginBottom: "16px",
+  boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
 };
 
 const headerColumn = {
@@ -468,41 +543,43 @@ const headerColumn = {
 };
 
 const sectionTitle = {
-  fontSize: "14px",
-  fontWeight: 700,
-  marginBottom: "8px",
+  fontSize: "15px",
+  fontWeight: "700",
+  marginBottom: "12px",
   color: "#2c3e50",
+  paddingBottom: "6px",
+  borderBottom: "2px solid #b8c7cc",
 };
 
 const labelStyle = {
   fontSize: "13px",
-  fontWeight: 600,
-  marginBottom: "4px",
+  fontWeight: "600",
+  marginBottom: "6px",
   display: "block",
   color: "#2c3e50",
 };
 
 const inputStyle = {
   width: "100%",
-  padding: "6px 8px",
-  fontSize: "13px",
-  borderRadius: "4px",
+  padding: "8px 10px",
+  fontSize: "14px",
+  borderRadius: "6px",
   border: "1px solid #cbd5e0",
   backgroundColor: "white",
   boxSizing: "border-box",
-  height: "32px",
+  height: "36px",
   fontFamily: "inherit",
 };
 
 const textareaStyle = {
   width: "100%",
-  padding: "8px",
-  fontSize: "13px",
-  borderRadius: "4px",
+  padding: "12px",
+  fontSize: "14px",
+  borderRadius: "6px",
   border: "1px solid #cbd5e0",
   resize: "vertical",
   backgroundColor: "white",
-  minHeight: "80px",
+  minHeight: "100px",
   fontFamily: "inherit",
   boxSizing: "border-box",
 };
@@ -510,84 +587,133 @@ const textareaStyle = {
 const fieldWrapper = {
   display: "flex",
   flexDirection: "column",
-  marginBottom: "12px",
+  marginBottom: "16px",
   width: "100%",
 };
 
 const row = {
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
-  gap: "12px",
+  gap: "16px",
   width: "100%",
+  '@media (max-width: 768px)': {
+    gridTemplateColumns: "1fr",
+    gap: "16px",
+  }
+};
+
+const mobileRow = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "16px",
+  width: "100%",
+};
+
+const commentsSection = {
+  marginTop: "20px",
+  backgroundColor: "white",
+  padding: "16px",
+  borderRadius: "8px",
+  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+};
+
+const divider = {
+  margin: "28px 0",
+  border: "none",
+  borderTop: "2px solid #e2e8f0",
 };
 
 const buttonRow = {
   display: "flex",
+  gap: "16px",
+  marginTop: "28px",
+  paddingTop: "20px",
+  borderTop: "1px solid #e2e8f0",
+};
+
+const mobileButtonRow = {
+  display: "flex",
+  flexDirection: "column",
   gap: "12px",
   marginTop: "24px",
   paddingTop: "16px",
   borderTop: "1px solid #e2e8f0",
 };
 
-const saveButton = {
-  padding: "8px 16px",
-  backgroundColor: "#2c5282",
-  color: "white",
-  border: "none",
-  borderRadius: "4px",
-  cursor: "pointer",
-  fontWeight: "600",
-  fontSize: "14px",
-  fontFamily: "inherit",
-};
-
 const backButton = {
-  padding: "8px 16px",
-  backgroundColor: "#2c5282", 
+  padding: "12px 24px",
+  backgroundColor: "#718096", 
   color: "white",
   border: "none",
-  borderRadius: "4px",
+  borderRadius: "6px",
   cursor: "pointer",
   fontWeight: "600",
-  fontSize: "14px",
+  fontSize: "15px",
   fontFamily: "inherit",
+  transition: "background-color 0.2s, transform 0.1s",
+  ':hover': {
+    backgroundColor: "#4a5568",
+  },
+  ':active': {
+    transform: "translateY(1px)",
+  },
+  '@media (max-width: 768px)': {
+    width: "100%",
+    padding: "14px",
+  }
 };
 
 const gridWrapper = {
   backgroundColor: "#fff",
   border: "1px solid #cfd6dd",
-  borderRadius: "6px",
-  marginTop: "12px",
+  borderRadius: "8px",
+  marginTop: "16px",
+  overflow: "hidden",
+  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+};
+
+const tableContainer = {
   overflowX: "auto",
+  WebkitOverflowScrolling: "touch",
 };
 
 const table = {
   width: "100%",
   borderCollapse: "collapse",
-  fontSize: "13px",
+  fontSize: "14px",
   minWidth: "1200px",
+  '@media (max-width: 768px)': {
+    fontSize: "13px",
+    minWidth: "1000px",
+  }
 };
 
 const th = {
   backgroundColor: "#eef2f5",
-  borderBottom: "1px solid #cfd6dd",
-  padding: "8px",
+  borderBottom: "2px solid #cfd6dd",
+  padding: "12px 10px",
   textAlign: "left",
   fontWeight: "600",
   fontFamily: "inherit",
+  color: "#2d3748",
+  whiteSpace: "nowrap",
 };
 
 const td = {
   borderBottom: "1px solid #e1e5ea",
-  padding: "8px",
+  padding: "10px",
   fontFamily: "inherit",
+  verticalAlign: "middle",
+  '@media (max-width: 768px)': {
+    padding: "8px 6px",
+  }
 };
 
 const loadingStyle = {
-  padding: "20px",
   textAlign: "center",
-  color: "#4a5568",
-  fontSize: "14px",
+  padding: "40px",
+  color: "#718096",
+  fontSize: "16px",
 };
 
 const errorStyle = {
@@ -595,20 +721,34 @@ const errorStyle = {
   border: "1px solid #fc8181",
   color: "#c53030",
   padding: "12px",
-  borderRadius: "4px",
-  marginBottom: "16px",
+  borderRadius: "6px",
   fontSize: "14px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "10px",
+  '@media (max-width: 768px)': {
+    padding: "10px",
+  }
 };
 
 const retryButton = {
-  marginLeft: "12px",
-  padding: "4px 8px",
+  padding: "8px 16px",
   backgroundColor: "#2c5282",
   color: "white",
   border: "none",
-  borderRadius: "4px",
+  borderRadius: "6px",
   cursor: "pointer",
-  fontSize: "12px",
+  fontWeight: "600",
+  fontSize: "14px",
+  fontFamily: "inherit",
+  alignSelf: "flex-start",
+  transition: "background-color 0.2s",
+  ':hover': {
+    backgroundColor: "#2b6cb0",
+  },
+  '@media (max-width: 768px)': {
+    width: "100%",
+  }
 };
 
 const noDataStyle = {
@@ -619,6 +759,13 @@ const noDataStyle = {
   backgroundColor: "#fff",
   border: "1px solid #e2e8f0",
   borderRadius: "6px",
+};
+
+const checkboxInput = {
+  margin: 0,
+  cursor: "default",
+  width: "16px",
+  height: "16px",
 };
 
 export default PurchaseOrderHeader;

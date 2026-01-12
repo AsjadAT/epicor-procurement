@@ -18,11 +18,22 @@ const POApproval = () => {
   const [selectedResponses, setSelectedResponses] = useState({});
   const [currentUserData, setCurrentUserData] = useState(null);
   const [filterType, setFilterType] = useState("pending");
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [expandedRow, setExpandedRow] = useState(null);
 
   //const baseURL = "https://192.168.1.142/kinetic2025demo/api/v2/odata";
   const baseURL = "https://epicorsi/kinetic2025demo/api/v2/odata";
   const company = "EPIC06";
   const apiKey = "wqgWS6cVVd4WnydMRoTNUkLbiBRFY93LJmhp2UzeLmvsC";
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (!username || !password) {
@@ -353,6 +364,7 @@ const POApproval = () => {
       
       // Refresh the list
       fetchPOApprovals();
+      setExpandedRow(null);
     } catch (err) {
       console.error("Approval submission failed:", err);
       alert(`Failed to submit approval: ${err.message}`);
@@ -380,12 +392,12 @@ const POApproval = () => {
         style: {
           backgroundColor: "#ffedd5",
           color: "#9a3412",
-          padding: "2px 8px",
+          padding: "4px 10px",
           borderRadius: "12px",
-          fontSize: "10px",
+          fontSize: "12px",
           fontWeight: "600",
           display: "inline-block",
-          marginTop: "4px"
+          width: "fit-content"
         }
       };
     } else if (approval.ApproverResponse === "APPROVED") {
@@ -394,12 +406,12 @@ const POApproval = () => {
         style: {
           backgroundColor: "#dcfce7",
           color: "#166534",
-          padding: "2px 8px",
+          padding: "4px 10px",
           borderRadius: "12px",
-          fontSize: "10px",
+          fontSize: "12px",
           fontWeight: "600",
           display: "inline-block",
-          marginTop: "4px"
+          width: "fit-content"
         }
       };
     } else if (approval.ApproverResponse === "REJECTED") {
@@ -408,12 +420,12 @@ const POApproval = () => {
         style: {
           backgroundColor: "#fee2e2",
           color: "#991b1b",
-          padding: "2px 8px",
+          padding: "4px 10px",
           borderRadius: "12px",
-          fontSize: "10px",
+          fontSize: "12px",
           fontWeight: "600",
           display: "inline-block",
-          marginTop: "4px"
+          width: "fit-content"
         }
       };
     }
@@ -428,55 +440,217 @@ const POApproval = () => {
     return approval.ApproverResponse;
   };
 
+  const toggleRowExpansion = (poNum) => {
+    if (expandedRow === poNum) {
+      setExpandedRow(null);
+    } else {
+      setExpandedRow(poNum);
+    }
+  };
+
+  const MobileApprovalCard = ({ approval }) => {
+    const userCanApprove = canUserApprove(approval);
+    const isSecurityOverride = isSecurityManager() && approval.MsgTo !== username;
+    const isPending = !approval.ApproverResponse || approval.ApproverResponse === "";
+    const statusBadge = getStatusBadge(approval);
+    const isExpanded = expandedRow === approval.PONum;
+
+    return (
+      <div style={mobileCard}>
+        <div style={mobileCardHeader} onClick={() => toggleRowExpansion(approval.PONum)}>
+          <div style={mobileCardTitle}>
+            <div style={{ fontWeight: "600", fontSize: "16px" }}>
+              PO #{approval.PONum}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              {statusBadge && <div style={statusBadge.style}>{statusBadge.text}</div>}
+              <div style={mobileExpandIcon}>
+                {isExpanded ? "▲" : "▼"}
+              </div>
+            </div>
+          </div>
+          <div style={mobileCardSubtitle}>
+            {approval.VendorName || "N/A"}
+            {isSecurityOverride && isPending && (
+              <div style={mobileOverrideBadge}>
+                (Override)
+              </div>
+            )}
+          </div>
+          <div style={mobileCardInfo}>
+            <div>${formatCurrency(approval.POAmt)}</div>
+            <div style={{ fontSize: "12px", color: "#666" }}>
+              {formatDateTime(approval.MsgDate).split(' ')[0]}
+            </div>
+          </div>
+        </div>
+
+        {isExpanded && (
+          <div style={mobileCardContent}>
+            <div style={mobileInfoGrid}>
+              <div style={mobileInfoItem}>
+                <label style={mobileLabel}>Date/Time</label>
+                <div style={mobileValue}>
+                  {formatDateTime(approval.MsgDate)} {approval.MsgTimeString || ""}
+                </div>
+              </div>
+              
+              <div style={mobileInfoItem}>
+                <label style={mobileLabel}>Supplier</label>
+                <div style={mobileValue}>{approval.VendorName || "N/A"}</div>
+              </div>
+              
+              <div style={mobileInfoItem}>
+                <label style={mobileLabel}>From</label>
+                <div style={mobileValue}>
+                  {approval.MsgFromName || getDisplayName(approval.MsgFrom)}
+                </div>
+              </div>
+              
+              <div style={mobileInfoItem}>
+                <label style={mobileLabel}>To</label>
+                <div style={mobileValue}>
+                  {approval.MsgToName || getDisplayName(approval.MsgTo)}
+                  {isSecurityOverride && isPending && (
+                    <div style={{ fontSize: "11px", color: "#d97706", marginTop: "2px" }}>
+                      (Assigned to this user)
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div style={mobileInfoItem}>
+                <label style={mobileLabel}>Buyer Limit</label>
+                <div style={mobileValue}>${formatCurrency(approval.BuyerLimit)}</div>
+              </div>
+              
+              <div style={mobileInfoItem}>
+                <label style={mobileLabel}>PO Amount</label>
+                <div style={{...mobileValue, fontWeight: "600"}}>
+                  ${formatCurrency(approval.POAmt)}
+                </div>
+              </div>
+              
+              <div style={mobileInfoItem}>
+                <label style={mobileLabel}>Approved Amount</label>
+                <div style={{
+                  ...mobileValue,
+                  fontWeight: "600",
+                  color: approval.ApvAmt === approval.POAmt ? "#166534" : 
+                        approval.ApvAmt < approval.POAmt ? "#d97706" : "#991b1b"
+                }}>
+                  ${formatCurrency(approval.ApvAmt)}
+                  {isPending && approval.ApvAmt !== approval.POAmt && (
+                    <div style={{ fontSize: "11px", color: approval.ApvAmt < approval.POAmt ? "#d97706" : "#991b1b" }}>
+                      {approval.ApvAmt < approval.POAmt ? "Partial Approval" : "Exceeds PO"}
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div style={mobileInfoItem}>
+                <label style={mobileLabel}>Response</label>
+                <div style={mobileValue}>
+                  {isPending ? (
+                    userCanApprove ? (
+                      <select
+                        style={mobileSelect}
+                        value={selectedResponses[approval.PONum] || ""}
+                        onChange={(e) => handleResponseChange(approval.PONum, e.target.value)}
+                        disabled={submitting}
+                      >
+                        <option value="">Select...</option>
+                        <option value="ACCEPT">Accept</option>
+                        <option value="REJECT">Reject</option>
+                      </select>
+                    ) : (
+                      <div style={{ color: "#666", fontStyle: "italic" }}>
+                        Waiting for {approval.MsgToName || getDisplayName(approval.MsgTo)}
+                      </div>
+                    )
+                  ) : (
+                    <div>
+                      <div style={{ 
+                        fontWeight: "600", 
+                        color: approval.ApproverResponse === "APPROVED" ? "#166534" : "#991b1b" 
+                      }}>
+                        {getStatusText(approval)}
+                      </div>
+                      {approval.DcdUserID && approval.DcdUserID !== "epicor" && (
+                        <div style={{ fontSize: "11px", color: "#666", marginTop: "2px" }}>
+                          By: {getDisplayName(approval.DcdUserID)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {isPending && userCanApprove && (
+              <div style={mobileActionContainer}>
+                <button
+                  style={selectedResponses[approval.PONum] && !submitting ? mobileActionButton : mobileActionButtonDisabled}
+                  onClick={() => submitApproval(approval.PONum, approval)}
+                  disabled={!selectedResponses[approval.PONum] || submitting}
+                >
+                  {submitting ? "Processing..." : "Submit Approval"}
+                  {isSecurityOverride && (
+                    <span style={{ fontSize: "11px", display: "block", opacity: 0.8 }}>
+                      (Security Manager Override)
+                    </span>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {!isPending && (
+              <div style={mobileCompleted}>
+                <span style={{ color: "#666", fontStyle: "italic" }}>
+                  Approval completed
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div style={container}>
-      <h2 style={title}>Purchase Order Approvals</h2>
+      <h2 style={isMobile ? mobileTitle : title}>Purchase Order Approvals</h2>
 
-      <div style={toolbar}>
+      <div style={isMobile ? mobileToolbar : toolbar}>
         <button style={iconBtn} title="Refresh" onClick={fetchPOApprovals}>
           <RefreshIcon fontSize="small" />
         </button>
         
-        <div style={{ display: "flex", gap: "8px", alignItems: "center", marginLeft: "12px" }}>
+        <div style={isMobile ? mobileFilterContainer : { display: "flex", gap: "8px", alignItems: "center", marginLeft: "12px" }}>
           <span style={{ fontSize: "13px", color: "#2f3a45", fontWeight: "500" }}>Show:</span>
           <select
-            style={filterSelectStyle}
+            style={isMobile ? mobileFilterSelect : filterSelectStyle}
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
           >
-            <option value="pending">Pending Approvals</option>
-            <option value="processed">Processed Approvals</option>
-            <option value="all">All Approvals</option>
+            <option value="pending">Pending</option>
+            <option value="processed">Processed</option>
+            <option value="all">All</option>
           </select>
           
-          <div style={{ 
-            fontSize: "11px", 
-            color: "#666", 
-            marginLeft: "8px",
-            backgroundColor: "#f0f4f8",
-            padding: "4px 8px",
-            borderRadius: "4px"
-          }}>
-            Showing {filteredApprovals.length} of {allApprovals.length} total
+          <div style={isMobile ? mobileCountBadge : countBadge}>
+            {filteredApprovals.length} of {allApprovals.length}
           </div>
         </div>
         
         <div style={{ flex: 1 }}></div>
         
-        <div style={{ fontSize: "13px", color: "#666", display: "flex", alignItems: "center", gap: "8px" }}>
+        <div style={isMobile ? mobileUserInfo : userInfo}>
           <div>
-            Logged in as: <strong>{username}</strong>
+            <strong>{username}</strong>
           </div>
           {currentUserData?.SecurityMgr && (
-            <div style={{
-              backgroundColor: "#e6f4ff",
-              color: "#0066cc",
-              padding: "2px 8px",
-              borderRadius: "12px",
-              fontSize: "11px",
-              fontWeight: "600",
-              border: "1px solid #b3d9ff"
-            }}>
+            <div style={securityBadge}>
               Security Manager
             </div>
           )}
@@ -487,194 +661,204 @@ const POApproval = () => {
       {error && <div style={errorStyle}>{error}</div>}
 
       {!loading && filteredApprovals.length > 0 && (
-        <div style={gridWrapper}>
-          <table style={table}>
-            <thead>
-              <tr>
-                <th style={th}>Status</th>
-                <th style={th}>PO #</th>
-                <th style={th}>Date</th>
-                <th style={th}>Time</th>
-                <th style={th}>Supplier</th>
-                <th style={th}>From</th>
-                <th style={th}>To</th>
-                <th style={th}>Buyer Limit</th>
-                <th style={th}>PO Amount</th>
-                <th style={th}>Approved Amount</th>
-                <th style={th}>Response</th>
-                <th style={th}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredApprovals.map((approval) => {
-                const userCanApprove = canUserApprove(approval);
-                const isSecurityOverride = isSecurityManager() && approval.MsgTo !== username;
-                const isPending = !approval.ApproverResponse || approval.ApproverResponse === "";
-                const statusBadge = getStatusBadge(approval);
-                
-                return (
-                  <tr key={approval.SysRowID} style={tr}>
-                    <td style={td}>
-                      {statusBadge && <div style={statusBadge.style}>{statusBadge.text}</div>}
-                    </td>
+        <>
+          {isMobile ? (
+            <div style={mobileGrid}>
+              {filteredApprovals.map((approval) => (
+                <MobileApprovalCard key={approval.SysRowID} approval={approval} />
+              ))}
+            </div>
+          ) : (
+            <div style={gridWrapper}>
+              <table style={table}>
+                <thead>
+                  <tr>
+                    <th style={th}>Status</th>
+                    <th style={th}>PO #</th>
+                    <th style={th}>Date</th>
+                    <th style={th}>Time</th>
+                    <th style={th}>Supplier</th>
+                    <th style={th}>From</th>
+                    <th style={th}>To</th>
+                    <th style={th}>Buyer Limit</th>
+                    <th style={th}>PO Amount</th>
+                    <th style={th}>Approved Amount</th>
+                    <th style={th}>Response</th>
+                    <th style={th}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredApprovals.map((approval) => {
+                    const userCanApprove = canUserApprove(approval);
+                    const isSecurityOverride = isSecurityManager() && approval.MsgTo !== username;
+                    const isPending = !approval.ApproverResponse || approval.ApproverResponse === "";
+                    const statusBadge = getStatusBadge(approval);
                     
-                    <td style={{...td, fontWeight: "600"}}>
-                      {approval.PONum}
-                      {isSecurityOverride && isPending && (
-                        <div style={{
-                          fontSize: "10px",
-                          color: "#0066cc",
-                          marginTop: "2px"
-                        }}>
-                          (Override)
-                        </div>
-                      )}
-                    </td>
-
-                    <td style={td}>
-                      {formatDateTime(approval.MsgDate).split(' ')[0]}
-                    </td>
-                    
-                    <td style={td}>
-                      {approval.MsgTimeString || 
-                        (approval.MsgTime ? 
-                          `${Math.floor(approval.MsgTime / 3600).toString().padStart(2, '0')}:${Math.floor((approval.MsgTime % 3600) / 60).toString().padStart(2, '0')}` 
-                          : "N/A")}
-                    </td>
-                    
-                    <td style={td}>
-                      {approval.VendorName || "N/A"}
-                    </td>
-                    
-                    <td style={td}>
-                      {approval.MsgFromName || getDisplayName(approval.MsgFrom)}
-                    </td>
-                    
-                    <td style={td}>
-                      <div>
-                        {approval.MsgToName || getDisplayName(approval.MsgTo)}
-                        {isSecurityOverride && isPending && (
-                          <div style={{
-                            fontSize: "10px",
-                            color: "#d97706",
-                            marginTop: "2px"
-                          }}>
-                            Assigned to
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    
-                    <td style={td} align="right">
-                      ${formatCurrency(approval.BuyerLimit)}
-                    </td>
-                    
-                    <td style={td} align="right">
-                      <span style={{fontWeight: "600"}}>
-                        ${formatCurrency(approval.POAmt)}
-                      </span>
-                    </td>
-                    
-                    <td style={td} align="right">
-                      <span style={{
-                        fontWeight: "600",
-                        color: approval.ApvAmt === approval.POAmt ? "#166534" : 
-                               approval.ApvAmt < approval.POAmt ? "#d97706" : "#991b1b"
-                      }}>
-                        ${formatCurrency(approval.ApvAmt)}
-                      </span>
-                      {isPending ? (
-                        approval.ApvAmt !== approval.POAmt && (
-                          <div style={{
-                            fontSize: "10px",
-                            color: approval.ApvAmt < approval.POAmt ? "#d97706" : "#991b1b"
-                          }}>
-                            {approval.ApvAmt < approval.POAmt ? "Partial Approval" : "Exceeds PO"}
-                          </div>
-                        )
-                      ) : (
-                        <div style={{
-                          fontSize: "10px",
-                          color: "#666",
-                          fontStyle: "italic"
-                        }}>
-                          Final
-                        </div>
-                      )}
-                    </td>
-                    
-                    <td style={td}>
-                      {isPending ? (
-                        userCanApprove ? (
-                          <select
-                            style={selectStyle}
-                            value={selectedResponses[approval.PONum] || ""}
-                            onChange={(e) => handleResponseChange(approval.PONum, e.target.value)}
-                            disabled={submitting}
-                          >
-                            <option value="">Select...</option>
-                            <option value="ACCEPT">Accept</option>
-                            <option value="REJECT">Reject</option>
-                          </select>
-                        ) : (
-                          <span style={{ color: "#666", fontStyle: "italic" }}>
-                            Not your approval
-                          </span>
-                        )
-                      ) : (
-                        <div style={{ fontSize: "12px" }}>
-                          <div style={{ 
-                            fontWeight: "600", 
-                            color: approval.ApproverResponse === "APPROVED" ? "#166534" : "#991b1b" 
-                          }}>
-                            {getStatusText(approval)}
-                          </div>
-                          {approval.DcdUserID && approval.DcdUserID !== "epicor" && (
-                            <div style={{ fontSize: "11px", color: "#666", marginTop: "2px" }}>
-                              By: {getDisplayName(approval.DcdUserID)}
+                    return (
+                      <tr key={approval.SysRowID} style={tr}>
+                        <td style={td}>
+                          {statusBadge && <div style={statusBadge.style}>{statusBadge.text}</div>}
+                        </td>
+                        
+                        <td style={{...td, fontWeight: "600"}}>
+                          {approval.PONum}
+                          {isSecurityOverride && isPending && (
+                            <div style={{
+                              fontSize: "10px",
+                              color: "#0066cc",
+                              marginTop: "2px"
+                            }}>
+                              (Override)
                             </div>
                           )}
-                        </div>
-                      )}
-                    </td>
-                    
-                    <td style={td}>
-                      {isPending ? (
-                        userCanApprove ? (
-                          <button
-                            style={selectedResponses[approval.PONum] && !submitting ? actionButton : actionButtonDisabled}
-                            onClick={() => submitApproval(approval.PONum, approval)}
-                            disabled={!selectedResponses[approval.PONum] || submitting}
-                          >
-                            {submitting ? "Processing..." : "Submit"}
-                            {isSecurityOverride && (
-                              <span style={{
+                        </td>
+
+                        <td style={td}>
+                          {formatDateTime(approval.MsgDate).split(' ')[0]}
+                        </td>
+                        
+                        <td style={td}>
+                          {approval.MsgTimeString || 
+                            (approval.MsgTime ? 
+                              `${Math.floor(approval.MsgTime / 3600).toString().padStart(2, '0')}:${Math.floor((approval.MsgTime % 3600) / 60).toString().padStart(2, '0')}` 
+                              : "N/A")}
+                        </td>
+                        
+                        <td style={td}>
+                          {approval.VendorName || "N/A"}
+                        </td>
+                        
+                        <td style={td}>
+                          {approval.MsgFromName || getDisplayName(approval.MsgFrom)}
+                        </td>
+                        
+                        <td style={td}>
+                          <div>
+                            {approval.MsgToName || getDisplayName(approval.MsgTo)}
+                            {isSecurityOverride && isPending && (
+                              <div style={{
                                 fontSize: "10px",
-                                display: "block",
-                                marginTop: "2px",
-                                opacity: 0.8
+                                color: "#d97706",
+                                marginTop: "2px"
                               }}>
-                                (Override)
-                              </span>
+                                Assigned to
+                              </div>
                             )}
-                          </button>
-                        ) : (
-                          <span style={{ color: "#999", fontSize: "12px" }}>
-                            Waiting for {approval.MsgToName || getDisplayName(approval.MsgTo)}
+                          </div>
+                        </td>
+                        
+                        <td style={td} align="right">
+                          ${formatCurrency(approval.BuyerLimit)}
+                        </td>
+                        
+                        <td style={td} align="right">
+                          <span style={{fontWeight: "600"}}>
+                            ${formatCurrency(approval.POAmt)}
                           </span>
-                        )
-                      ) : (
-                        <span style={{ color: "#666", fontSize: "12px", fontStyle: "italic" }}>
-                          Completed
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                        </td>
+                        
+                        <td style={td} align="right">
+                          <span style={{
+                            fontWeight: "600",
+                            color: approval.ApvAmt === approval.POAmt ? "#166534" : 
+                                  approval.ApvAmt < approval.POAmt ? "#d97706" : "#991b1b"
+                          }}>
+                            ${formatCurrency(approval.ApvAmt)}
+                          </span>
+                          {isPending ? (
+                            approval.ApvAmt !== approval.POAmt && (
+                              <div style={{
+                                fontSize: "10px",
+                                color: approval.ApvAmt < approval.POAmt ? "#d97706" : "#991b1b"
+                              }}>
+                                {approval.ApvAmt < approval.POAmt ? "Partial Approval" : "Exceeds PO"}
+                              </div>
+                            )
+                          ) : (
+                            <div style={{
+                              fontSize: "10px",
+                              color: "#666",
+                              fontStyle: "italic"
+                            }}>
+                              Final
+                            </div>
+                          )}
+                        </td>
+                        
+                        <td style={td}>
+                          {isPending ? (
+                            userCanApprove ? (
+                              <select
+                                style={selectStyle}
+                                value={selectedResponses[approval.PONum] || ""}
+                                onChange={(e) => handleResponseChange(approval.PONum, e.target.value)}
+                                disabled={submitting}
+                              >
+                                <option value="">Select...</option>
+                                <option value="ACCEPT">Accept</option>
+                                <option value="REJECT">Reject</option>
+                              </select>
+                            ) : (
+                              <span style={{ color: "#666", fontStyle: "italic" }}>
+                                Not your approval
+                              </span>
+                            )
+                          ) : (
+                            <div style={{ fontSize: "12px" }}>
+                              <div style={{ 
+                                fontWeight: "600", 
+                                color: approval.ApproverResponse === "APPROVED" ? "#166534" : "#991b1b" 
+                              }}>
+                                {getStatusText(approval)}
+                              </div>
+                              {approval.DcdUserID && approval.DcdUserID !== "epicor" && (
+                                <div style={{ fontSize: "11px", color: "#666", marginTop: "2px" }}>
+                                  By: {getDisplayName(approval.DcdUserID)}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                        
+                        <td style={td}>
+                          {isPending ? (
+                            userCanApprove ? (
+                              <button
+                                style={selectedResponses[approval.PONum] && !submitting ? actionButton : actionButtonDisabled}
+                                onClick={() => submitApproval(approval.PONum, approval)}
+                                disabled={!selectedResponses[approval.PONum] || submitting}
+                              >
+                                {submitting ? "Processing..." : "Submit"}
+                                {isSecurityOverride && (
+                                  <span style={{
+                                    fontSize: "10px",
+                                    display: "block",
+                                    marginTop: "2px",
+                                    opacity: 0.8
+                                  }}>
+                                    (Override)
+                                  </span>
+                                )}
+                              </button>
+                            ) : (
+                              <span style={{ color: "#999", fontSize: "12px" }}>
+                                Waiting for {approval.MsgToName || getDisplayName(approval.MsgTo)}
+                              </span>
+                            )
+                          ) : (
+                            <span style={{ color: "#666", fontSize: "12px", fontStyle: "italic" }}>
+                              Completed
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
 
       {!loading && filteredApprovals.length === 0 && (
@@ -685,7 +869,7 @@ const POApproval = () => {
           <div style={{ marginTop: "8px", fontSize: "12px", color: "#666" }}>
             <button 
               onClick={fetchPOApprovals}
-              style={{ padding: "4px 8px", background: "#eef2f5", border: "1px solid #cfd6dd", borderRadius: "4px", cursor: "pointer" }}
+              style={refreshButton}
             >
               Click to refresh
             </button>
@@ -696,15 +880,29 @@ const POApproval = () => {
   );
 };
 
+/* ---------- Desktop Styles ---------- */
 const container = {
   padding: "16px",
   backgroundColor: "#f5f7f9",
   minHeight: "100vh",
+  '@media (max-width: 768px)': {
+    padding: "12px",
+  }
 };
 
 const title = {
   marginBottom: "12px",
   fontWeight: "600",
+  fontSize: "24px",
+  color: "#2d3748",
+};
+
+const mobileTitle = {
+  marginBottom: "12px",
+  fontWeight: "600",
+  fontSize: "20px",
+  color: "#2d3748",
+  textAlign: "center",
 };
 
 const gridWrapper = {
@@ -712,6 +910,8 @@ const gridWrapper = {
   border: "1px solid #cfd6dd",
   overflowX: "auto",
   marginTop: "12px",
+  borderRadius: "8px",
+  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
 };
 
 const table = {
@@ -723,16 +923,17 @@ const table = {
 
 const th = {
   backgroundColor: "#eef2f5",
-  borderBottom: "1px solid #cfd6dd",
-  padding: "8px",
+  borderBottom: "2px solid #cfd6dd",
+  padding: "12px 10px",
   textAlign: "left",
   fontWeight: "600",
   whiteSpace: "nowrap",
+  color: "#2d3748",
 };
 
 const td = {
   borderBottom: "1px solid #e1e5ea",
-  padding: "8px",
+  padding: "10px",
   whiteSpace: "nowrap",
   verticalAlign: "middle",
 };
@@ -742,11 +943,14 @@ const tr = {
 };
 
 const info = {
-  padding: "12px",
+  padding: "20px",
   backgroundColor: "#fff",
   border: "1px solid #e1e5ea",
-  borderRadius: "4px",
+  borderRadius: "8px",
   marginTop: "12px",
+  textAlign: "center",
+  fontSize: "14px",
+  color: "#4a5568",
 };
 
 const errorStyle = {
@@ -754,24 +958,37 @@ const errorStyle = {
   padding: "12px",
   backgroundColor: "#ffebee",
   border: "1px solid #ffcdd2",
-  borderRadius: "4px",
+  borderRadius: "8px",
   marginTop: "12px",
+  fontSize: "14px",
 };
 
 const toolbar = {
   display: "flex",
   gap: "6px",
-  padding: "6px",
+  padding: "12px",
   backgroundColor: "#eef2f5",
   border: "1px solid #cfd6dd",
-  borderRadius: "4px",
+  borderRadius: "8px",
   marginBottom: "12px",
   alignItems: "center",
+  flexWrap: "wrap",
+};
+
+const mobileToolbar = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "12px",
+  padding: "12px",
+  backgroundColor: "#eef2f5",
+  border: "1px solid #cfd6dd",
+  borderRadius: "8px",
+  marginBottom: "12px",
 };
 
 const iconBtn = {
-  width: "32px",
-  height: "32px",
+  width: "40px",
+  height: "40px",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -779,45 +996,288 @@ const iconBtn = {
   border: "1px solid #cfd6dd",
   cursor: "pointer",
   color: "#2f3a45",
-  borderRadius: "4px",
+  borderRadius: "6px",
+  transition: "background-color 0.2s",
+  ':hover': {
+    backgroundColor: "#f0f4f8",
+  }
 };
 
 const filterSelectStyle = {
-  padding: "4px 8px",
-  fontSize: "13px",
-  borderRadius: "4px",
+  padding: "8px 12px",
+  fontSize: "14px",
+  borderRadius: "6px",
   border: "1px solid #cbd5e0",
   backgroundColor: "white",
   cursor: "pointer",
   minWidth: "160px",
+  height: "40px",
+};
+
+const mobileFilterSelect = {
+  padding: "10px 12px",
+  fontSize: "14px",
+  borderRadius: "6px",
+  border: "1px solid #cbd5e0",
+  backgroundColor: "white",
+  cursor: "pointer",
+  width: "100%",
+  height: "44px",
+};
+
+const mobileFilterContainer = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "8px",
+  width: "100%",
+};
+
+const countBadge = {
+  fontSize: "12px",
+  color: "#666",
+  backgroundColor: "#f0f4f8",
+  padding: "6px 10px",
+  borderRadius: "6px",
+  fontWeight: "500",
+};
+
+const mobileCountBadge = {
+  fontSize: "12px",
+  color: "#666",
+  backgroundColor: "#f0f4f8",
+  padding: "8px 12px",
+  borderRadius: "6px",
+  fontWeight: "500",
+  textAlign: "center",
+  marginTop: "4px",
+};
+
+const userInfo = {
+  fontSize: "13px",
+  color: "#666",
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  flexWrap: "wrap",
+};
+
+const mobileUserInfo = {
+  fontSize: "14px",
+  color: "#666",
+  display: "flex",
+  flexDirection: "column",
+  gap: "8px",
+  padding: "8px 0",
+  borderTop: "1px solid #cfd6dd",
+  marginTop: "8px",
+};
+
+const securityBadge = {
+  backgroundColor: "#e6f4ff",
+  color: "#0066cc",
+  padding: "4px 10px",
+  borderRadius: "12px",
+  fontSize: "12px",
+  fontWeight: "600",
+  border: "1px solid #b3d9ff",
+  whiteSpace: "nowrap",
 };
 
 const selectStyle = {
-  padding: "4px 8px",
+  padding: "6px 10px",
   fontSize: "13px",
-  borderRadius: "4px",
+  borderRadius: "6px",
   border: "1px solid #cbd5e0",
   backgroundColor: "white",
   minWidth: "100px",
   cursor: "pointer",
+  height: "34px",
 };
 
 const actionButton = {
-  padding: "6px 12px",
-  fontSize: "12px",
+  padding: "8px 16px",
+  fontSize: "13px",
   backgroundColor: "#2c5282",
   color: "white",
   border: "none",
-  borderRadius: "4px",
+  borderRadius: "6px",
   cursor: "pointer",
   fontWeight: "600",
   minWidth: "80px",
+  transition: "background-color 0.2s",
+  ':hover': {
+    backgroundColor: "#2b6cb0",
+  }
 };
 
 const actionButtonDisabled = {
   ...actionButton,
   backgroundColor: "#a0aec0",
   cursor: "not-allowed",
+  ':hover': {
+    backgroundColor: "#a0aec0",
+  }
+};
+
+const refreshButton = {
+  padding: "8px 16px",
+  background: "#eef2f5",
+  border: "1px solid #cfd6dd",
+  borderRadius: "6px",
+  cursor: "pointer",
+  fontSize: "13px",
+  fontWeight: "500",
+  transition: "background-color 0.2s",
+  ':hover': {
+    backgroundColor: "#e2e8f0",
+  }
+};
+
+/* ---------- Mobile Styles ---------- */
+const mobileGrid = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "12px",
+  marginTop: "12px",
+};
+
+const mobileCard = {
+  backgroundColor: "#fff",
+  border: "1px solid #e1e5ea",
+  borderRadius: "8px",
+  overflow: "hidden",
+  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+};
+
+const mobileCardHeader = {
+  padding: "16px",
+  cursor: "pointer",
+  backgroundColor: "#f8fafc",
+  borderBottom: "1px solid #e1e5ea",
+};
+
+const mobileCardTitle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: "8px",
+};
+
+const mobileExpandIcon = {
+  fontSize: "14px",
+  color: "#666",
+};
+
+const mobileCardSubtitle = {
+  fontSize: "14px",
+  color: "#4a5568",
+  marginBottom: "8px",
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  flexWrap: "wrap",
+};
+
+const mobileOverrideBadge = {
+  backgroundColor: "#e6f4ff",
+  color: "#0066cc",
+  padding: "2px 6px",
+  borderRadius: "10px",
+  fontSize: "10px",
+  fontWeight: "600",
+};
+
+const mobileCardInfo = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  fontSize: "14px",
+  color: "#2d3748",
+};
+
+const mobileCardContent = {
+  padding: "16px",
+  backgroundColor: "#fff",
+};
+
+const mobileInfoGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, 1fr)",
+  gap: "12px",
+  marginBottom: "16px",
+  '@media (max-width: 480px)': {
+    gridTemplateColumns: "1fr",
+  }
+};
+
+const mobileInfoItem = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "4px",
+};
+
+const mobileLabel = {
+  fontSize: "12px",
+  color: "#718096",
+  fontWeight: "500",
+};
+
+const mobileValue = {
+  fontSize: "14px",
+  color: "#2d3748",
+  fontWeight: "500",
+};
+
+const mobileSelect = {
+  padding: "8px 10px",
+  fontSize: "14px",
+  borderRadius: "6px",
+  border: "1px solid #cbd5e0",
+  backgroundColor: "white",
+  width: "100%",
+  cursor: "pointer",
+  marginTop: "4px",
+};
+
+const mobileActionContainer = {
+  marginTop: "16px",
+  paddingTop: "16px",
+  borderTop: "1px solid #e1e5ea",
+};
+
+const mobileActionButton = {
+  padding: "12px 16px",
+  fontSize: "14px",
+  backgroundColor: "#2c5282",
+  color: "white",
+  border: "none",
+  borderRadius: "6px",
+  cursor: "pointer",
+  fontWeight: "600",
+  width: "100%",
+  transition: "background-color 0.2s",
+  ':hover': {
+    backgroundColor: "#2b6cb0",
+  }
+};
+
+const mobileActionButtonDisabled = {
+  ...mobileActionButton,
+  backgroundColor: "#a0aec0",
+  cursor: "not-allowed",
+  ':hover': {
+    backgroundColor: "#a0aec0",
+  }
+};
+
+const mobileCompleted = {
+  textAlign: "center",
+  padding: "12px",
+  color: "#666",
+  fontSize: "14px",
+  fontStyle: "italic",
+  borderTop: "1px solid #e1e5ea",
+  marginTop: "16px",
 };
 
 export default POApproval;
